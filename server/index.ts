@@ -92,7 +92,16 @@ if (fs.existsSync(webDir)) {
       },
     }),
   );
-  app.get('*', (_req, res) => {
+  app.get('*', (req, res) => {
+    // The client uses a hash router, so clean paths such as /login or /projects/42
+    // must be translated to their hash route to keep shared links working.
+    const hasFileExtension = /\.[a-z0-9]+$/i.test(req.path);
+    if (req.path !== '/' && !hasFileExtension) {
+      const queryIndex = req.originalUrl.indexOf('?');
+      const query = queryIndex === -1 ? '' : req.originalUrl.slice(queryIndex);
+      res.redirect(302, `/#${req.path}${query}`);
+      return;
+    }
     res.sendFile(path.join(webDir, 'index.html'));
   });
 } else {
