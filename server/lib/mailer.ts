@@ -13,7 +13,10 @@ let nodemailer: any = null;
 async function transport() {
   if (!process.env.SMTP_URL) return null;
   if (!nodemailer) {
-    nodemailer = await import('nodemailer').catch(() => null);
+    // Indirect specifier keeps the module optional: SMTP support is only needed
+    // when SMTP_URL is configured, and the package is not a hard dependency.
+    const specifier = 'nodemailer';
+    nodemailer = await import(specifier).catch(() => null);
   }
   if (!nodemailer) return null;
   return nodemailer.createTransport(process.env.SMTP_URL);

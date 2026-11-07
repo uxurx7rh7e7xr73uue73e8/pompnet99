@@ -18,6 +18,19 @@ import {
 export const serviceRouter = Router();
 serviceRouter.use(requireAuth);
 
+/**
+ * A service always deploys into a concrete environment. Legacy rows may have a
+ * null environment_id, so fall back to the project's first environment.
+ */
+function resolveEnvironmentId(service: { project_id: string; environment_id: string | null }): string {
+  if (service.environment_id) return service.environment_id;
+  const fallback = db
+    .prepare('SELECT id FROM environments WHERE project_id = ? ORDER BY created_at ASC LIMIT 1')
+    .get(service.project_id) as { id: string } | undefined;
+  if (!fallback) throw notFound('No environment available for this project');
+  return fallback.id;
+}
+
 function providerCapabilities(workspaceId: string) {
   const row = db
     .prepare(`SELECT id, label, account_name, created_at, last_verified_at FROM provider_connections
