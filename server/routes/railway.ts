@@ -564,6 +564,26 @@ railwayRouter.post(
 );
 
 railwayRouter.get(
+  '/services',
+  route(async (req, res) => {
+    const { workspaceId } = parse(workspaceRef, req.query);
+    assertWorkspaceAccess(req.user!.id, workspaceId, 'viewer');
+    const services = db
+      .prepare(
+        `SELECT s.id, s.name, s.status, s.provider_project_id, s.provider_environment_id,
+                s.provider_service_id, s.docker_image, s.repo_full_name, s.created_at, s.updated_at,
+                p.id AS project_id, p.name AS project_name
+         FROM services s
+         JOIN projects p ON p.id = s.project_id
+         WHERE p.workspace_id = ? AND s.provider = 'railway'
+         ORDER BY s.created_at DESC`,
+      )
+      .all(workspaceId);
+    res.json({ services, capabilities: ctxCapabilities() });
+  }),
+);
+
+railwayRouter.get(
   '/services/:serviceId/status',
   route(async (req, res) => {
     const { workspaceId } = parse(workspaceRef, req.query);
