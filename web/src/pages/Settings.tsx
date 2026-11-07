@@ -261,9 +261,25 @@ export default function Settings() {
               </div>
             ) : (
               <div className="space-y-3">
-                <Field label={t('توکن API حساب Railway', 'Railway account API token')} required hint={t('در حساب Railway خود بسازید', 'Create it in your own Railway account')}>
-                  <Input type="password" value={railway.token} onChange={(e) => setRailway({ ...railway, token: e.target.value })} dir="ltr" className="font-mono text-xs" />
+                <Field
+                  label={t('توکن API حساب Railway', 'Railway account API token')}
+                  required
+                  hint={t(
+                    'Account Token بسازید (نه Project Token) — railway.com/account/tokens',
+                    'Create an Account Token (not a Project Token) at railway.com/account/tokens',
+                  )}
+                >
+                  <Input type="password" value={railway.token} onChange={(e) => setRailway({ ...railway, token: e.target.value })} dir="ltr" className="font-mono text-xs" placeholder="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx" />
                 </Field>
+                <p className="text-[11px] text-[#A9A2BA]">
+                  {t(
+                    'در railway.com ← Account Settings ← Tokens یک توکن با نام دلخواه بساز و همان را اینجا وارد کن. توکن Project فقط به همان پروژه دسترسی دارد و برای لیست پروژه‌ها و دیپلوی پنل کار نمی‌کند.',
+                    'Open railway.com → Account Settings → Tokens, create a token and paste it here. A project token only reaches one project and cannot list projects or deploy new services.',
+                  )}{' '}
+                  <a href="https://railway.com/account/tokens" target="_blank" rel="noreferrer" className="text-[#168CFF] underline">
+                    {t('ساخت توکن', 'Create token')}
+                  </a>
+                </p>
                 <Field label={t('برچسب', 'Label')}>
                   <Input value={railway.label} onChange={(e) => setRailway({ ...railway, label: e.target.value })} />
                 </Field>
