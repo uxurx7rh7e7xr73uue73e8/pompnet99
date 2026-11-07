@@ -188,12 +188,16 @@ export class RailwayProvider implements ProviderAdapter {
     token: string,
     input: { serviceId: string; environmentId: string },
   ): Promise<{ deploymentId: string }> {
-    const data = await this.graphql<{ deploymentCreate: { id: string } }>(
+    // serviceInstanceDeploy is the documented mutation that starts a new
+    // deployment for an existing service instance.
+    const data = await this.graphql<{ serviceInstanceDeploy: string }>(
       token,
-      `mutation ($input: DeploymentCreateInput!) { deploymentCreate(input: $input) { id } }`,
-      { input: { serviceId: input.serviceId, environmentId: input.environmentId } },
+      `mutation ($serviceId: String!, $environmentId: String!) {
+         serviceInstanceDeploy(serviceId: $serviceId, environmentId: $environmentId)
+       }`,
+      { serviceId: input.serviceId, environmentId: input.environmentId },
     );
-    return { deploymentId: data.deploymentCreate.id };
+    return { deploymentId: data.serviceInstanceDeploy };
   }
 
   async getDeployment(token: string, deploymentId: string): Promise<DeploymentSnapshot> {
