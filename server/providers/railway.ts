@@ -6,8 +6,11 @@ import type {
   ProviderAccount,
   ProviderAdapter,
   ProviderDeploymentStatus,
+  ProviderDeploymentSummary,
   ProviderEnvironment,
   ProviderProject,
+  ProviderProjectDetail,
+  ServiceInstanceInfo,
 } from './types.js';
 
 const DEFAULT_ENDPOINT = 'https://backboard.railway.com/graphql/v2';
