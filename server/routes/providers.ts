@@ -216,6 +216,116 @@ providerRouter.get(
   }),
 );
 
+/* --------------------- GitHub account connection (token) ------------------- */
+
+/**
+ * Connects the user's own GitHub account without requiring an OAuth app: the token is
+ * verified against the GitHub API, then stored encrypted per workspace. Only the backend
+ * ever decrypts it, so repository listing and deploys happen with the user's real access.
+ */
+providerRouter.post(
+  '/github/connect',
+  route(async (req, res) => {
+    const body = parse(
+      z.object({
+        workspaceId: z.string().min(1),
+        token: z.string().trim().min(20).max(512),
+        label: z.string().trim().max(60).optional(),
+      }),
+      req.body,
+    );
+    assertWorkspaceAccess(req.user!.id, body.workspaceId, 'admin');
+    rateLimit(`github-connect:${req.user!.id}`, 8, 60_000);
+
+    const headers = {
+      authorization: `Bearer ${body.token}`,
+      accept: 'application/vnd.github+json',
+      'user-agent': 'pomp-net-cloud',
+      'x-github-api-version': '2022-11-28',
+    };
+
+    const whoRes = await fetch('https://api.github.com/user', { headers });
+    if (whoRes.status === 401 || whoRes.status === 403) {
+      throw new ApiError(401, 'invalid_token', 'GitHub rejected this token.');
+    }
+    if (!whoRes.ok) {
+      throw new ApiError(
+        502,
+        'provider_error',
+        `GitHub returned ${whoRes.status} while verifying the token.`,
+      );
+    }
+    const who = (await whoRes.json()) as any;
+
+    // Count accessible repositories honestly (private ones included only if the token allows it).
+    let accessibleRepos: number | null = null;
+    const reposRes = await fetch('https://api.github.com/user/repos?per_page=1&sort=updated', { headers });
+    if (reposRes.ok) {
+      const link = reposRes.headers.get('link') ?? '';
+      const last = /[?&]page=(\d+)>;\s*rel="last"/.exec(link);
+      accessibleRepos = last ? Number(last[1]) : ((await reposRes.json()) as any[]).length;
+    }
+
+    const accountName = String(who.login ?? 'GitHub');
+    const existing = db
+      .prepare(`SELECT id FROM provider_connections WHERE workspace_id = ? AND provider = 'github'`)
+      .get(body.workspaceId) as any;
+    const now = nowIso();
+    if (existing) {
+      db.prepare(
+        `UPDATE provider_connections SET token_encrypted = ?, account_name = ?, account_email = ?, label = ?,
+           status = 'connected', last_checked_at = ?, created_by = ? WHERE id = ?`,
+      ).run(
+        encryptSecret(body.token),
+        accountName,
+        who.email ?? null,
+        body.label || 'GitHub',
+        now,
+        req.user!.id,
+        existing.id,
+      );
+    } else {
+      db.prepare(
+        `INSERT INTO provider_connections (id, workspace_id, provider, label, token_encrypted, account_name,
+           account_email, status, last_checked_at, created_by, created_at)
+         VALUES (?, ?, 'github', ?, ?, ?, ?, 'connected', ?, ?, ?)`,
+      ).run(
+        randomToken(12),
+        body.workspaceId,
+        body.label || 'GitHub',
+        encryptSecret(body.token),
+        accountName,
+        who.email ?? null,
+        now,
+        req.user!.id,
+        now,
+      );
+    }
+
+    audit({
+      workspaceId: body.workspaceId,
+      actorId: req.user!.id,
+      actorEmail: req.user!.email,
+      action: 'github.connected',
+      targetType: 'provider',
+      targetId: 'github',
+      metadata: { account: accountName, method: 'token' },
+      ip: req.ip,
+    });
+
+    res.status(201).json({
+      account: {
+        login: accountName,
+        name: who.name ?? null,
+        email: who.email ?? null,
+        avatarUrl: who.avatar_url ?? null,
+        accessibleRepos,
+      },
+      note: 'Token stored encrypted on the server. It is never returned to the browser.',
+    });
+  }),
+);
+
 /* ------------------------------- GitHub OAuth ------------------------------ */
 
 providerRouter.get(
