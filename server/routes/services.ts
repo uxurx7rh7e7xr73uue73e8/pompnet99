@@ -268,7 +268,7 @@ serviceRouter.post(
     const deployment = await startDeployment({
       projectId: service.project_id,
       serviceId: service.id,
-      environmentId: body.environmentId || service.environment_id,
+      environmentId: body.environmentId || resolveEnvironmentId(service),
       trigger: 'manual',
       commit: body.commit,
       userId: req.user!.id,
@@ -285,7 +285,7 @@ serviceRouter.post(
     const deployment = await startDeployment({
       projectId: service.project_id,
       serviceId: service.id,
-      environmentId: service.environment_id,
+      environmentId: resolveEnvironmentId(service),
       trigger: 'redeploy',
       userId: req.user!.id,
     });
@@ -310,7 +310,7 @@ serviceRouter.post(
     const deployment = await startDeployment({
       projectId: service.project_id,
       serviceId: service.id,
-      environmentId: service.environment_id,
+      environmentId: resolveEnvironmentId(service),
       trigger: 'redeploy',
       userId: req.user!.id,
     });
@@ -659,7 +659,7 @@ webhookRouter.post(
     const deployment = await startDeployment({
       projectId: service.project_id,
       serviceId: service.id,
-      environmentId: service.environment_id,
+      environmentId: resolveEnvironmentId(service),
       trigger: 'github_push',
       commit: {
         sha: req.body?.after ?? null,
