@@ -22,6 +22,19 @@ export interface ProviderContext {
   adapter: ProviderAdapter;
   token: string;
   connectionId: string;
+  /** workspace = token entered by a user; server = deployment env variable. */
+  source: 'workspace' | 'server';
+}
+
+/**
+ * Optional deployment-level token injected as a server environment variable
+ * (RAILWAY_TOKEN). It never lives in the repository and is only used when the
+ * workspace has not connected its own provider account.
+ */
+export function envProviderToken(provider = 'railway'): string | null {
+  if (provider !== 'railway') return null;
+  const token = (process.env.RAILWAY_TOKEN || '').trim();
+  return token.length >= 10 ? token : null;
 }
 
 /**
@@ -36,6 +49,15 @@ export function requireProviderConnection(workspaceId: string, provider = 'railw
     )
     .get(workspaceId, provider) as any;
   if (!row) {
+    const envToken = envProviderToken(provider);
+    if (envToken) {
+      return {
+        adapter: getAdapter(provider),
+        token: envToken,
+        connectionId: `server-env:${provider}`,
+        source: 'server',
+      };
+    }
     throw unavailable(
       `No ${provider} account is connected to this workspace. Connect your own provider token in Settings → Providers to enable real deployments.`,
       { provider, required: 'provider_connection' },
@@ -51,6 +73,7 @@ export function requireProviderConnection(workspaceId: string, provider = 'railw
     adapter: getAdapter(provider),
     token: decryptSecret(row.token_encrypted),
     connectionId: row.id,
+    source: 'workspace',
   };
 }
 
@@ -58,5 +81,5 @@ export function hasProviderConnection(workspaceId: string, provider = 'railway')
   const row = db
     .prepare(`SELECT status FROM provider_connections WHERE workspace_id = ? AND provider = ?`)
     .get(workspaceId, provider) as { status: string } | undefined;
-  return row?.status === 'connected';
+  return row?.status === 'connected' || Boolean(envProviderToken(provider));
 }
