@@ -14,10 +14,9 @@ RUN npm run build
 # ---- runtime stage: minimal image, no toolchain ----
 FROM node:22-alpine
 
-RUN apk upgrade --no-cache
-
-ENV NODE_ENV=production \
-    PORT=8080
+RUN apk upgrade --no-cache \
+ && apk add --no-cache --upgrade 'zlib>=1.4' \
+ && apk info -v zlib
 
 WORKDIR /app
 COPY --from=build /app/package*.json ./
