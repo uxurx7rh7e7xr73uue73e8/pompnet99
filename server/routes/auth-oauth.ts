@@ -229,6 +229,91 @@ oauthRouter.get('/providers', (_req, res) => {
   });
 });
 
+/* ------------------------- Owner-managed credentials ------------------------ */
+
+function describeProvider(provider: Provider, req: Request) {
+  const storedId = getSetting(`oauth:${provider}:client_id`, '').trim();
+  const storedHasSecret = Boolean(getSetting(`oauth:${provider}:client_secret`, ''));
+  const cfg = config(provider);
+  return {
+    provider,
+    clientId: cfg.clientId,
+    clientIdSource: storedId ? 'settings' : envValue(provider, 'id') ? 'env' : null,
+    hasSecret: Boolean(cfg.clientSecret),
+    secretSource: storedHasSecret ? 'settings' : envValue(provider, 'secret') ? 'env' : null,
+    configured: cfg.configured,
+    callbackUrl: callbackUrl(req, provider),
+  };
+}
+
+function describeAll(req: Request) {
+  return {
+    github: describeProvider('github', req),
+    google: describeProvider('google', req),
+    authorizeUrls: {
+      github: 'https://github.com/settings/developers',
+      google: 'https://console.cloud.google.com/apis/credentials',
+    },
+  };
+}
+
+oauthRouter.get('/settings', requireAuth, requirePlatformOwner, (req, res) => {
+  res.json(describeAll(req));
+});
+
+oauthRouter.put(
+  '/settings',
+  requireAuth,
+  requirePlatformOwner,
+  route(async (req, res) => {
+    const body = parse(
+      z.object({
+        provider: z.enum(['github', 'google']),
+        clientId: z.string().trim().min(6).max(200),
+        clientSecret: z.string().trim().max(400).optional(),
+      }),
+      req.body,
+    );
+    setSetting(`oauth:${body.provider}:client_id`, body.clientId);
+    if (body.clientSecret) {
+      setSetting(`oauth:${body.provider}:client_secret`, encryptSecret(body.clientSecret));
+    }
+    audit({
+      actorId: req.user!.id,
+      actorEmail: req.user!.email,
+      action: `oauth.credentials.updated`,
+      targetType: 'provider',
+      targetId: body.provider,
+      metadata: { secretUpdated: Boolean(body.clientSecret) },
+      ip: req.ip,
+    });
+    res.json(describeAll(req));
+  }),
+);
+
+oauthRouter.delete(
+  '/settings/:provider',
+  requireAuth,
+  requirePlatformOwner,
+  route(async (req, res) => {
+    const provider = String(req.params.provider || '');
+    if (!isProvider(provider)) throw new ApiError(404, 'not_found', 'Unsupported sign-in provider');
+    db.prepare('DELETE FROM platform_settings WHERE key IN (?, ?)').run(
+      `oauth:${provider}:client_id`,
+      `oauth:${provider}:client_secret`,
+    );
+    audit({
+      actorId: req.user!.id,
+      actorEmail: req.user!.email,
+      action: 'oauth.credentials.cleared',
+      targetType: 'provider',
+      targetId: provider,
+      ip: req.ip,
+    });
+    res.json(describeAll(req));
+  }),
+);
+
 oauthRouter.get('/:provider/start', (req: Request, res: Response) => {
   const provider = String(req.params.provider || '');
   if (!isProvider(provider)) {
