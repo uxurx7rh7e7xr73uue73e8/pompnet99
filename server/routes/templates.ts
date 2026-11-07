@@ -122,7 +122,7 @@ templateRouter.post(
         workspaceId: z.string().min(1),
         projectName: z.string().trim().min(2).max(80),
         environment: z.string().trim().min(2).max(40).optional().default('production'),
-        variables: z.record(z.string().max(20000)).optional().default({}),
+        variables: z.record(z.string(), z.string().max(20000)).optional().default({}),
       }),
       req.body,
     );
