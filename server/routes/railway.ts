@@ -441,7 +441,7 @@ railwayRouter.post(
         name: z.string().min(1).max(60),
         image: z.string().min(3).max(200),
         port: z.number().int().min(1).max(65535).optional(),
-        variables: z.record(z.string()).optional(),
+        variables: z.record(z.string(), z.string()).optional(),
         buildCommand: z.string().max(500).optional(),
         startCommand: z.string().max(500).optional(),
         createDomain: z.boolean().optional(),
@@ -587,7 +587,7 @@ railwayRouter.get(
   '/services/:serviceId/status',
   route(async (req, res) => {
     const { workspaceId } = parse(workspaceRef, req.query);
-    const service = requireService(req.user!.id, req.params.serviceId, 'viewer');
+    const { service } = requireService(req.user!.id, req.params.serviceId, 'viewer');
     const ctx = ctxFor(service.project_id ? workspaceId : workspaceId);
     assertWorkspaceAccess(req.user!.id, workspaceId, 'viewer');
 
@@ -646,7 +646,7 @@ railwayRouter.post(
   route(async (req, res) => {
     const body = parse(workspaceRef, req.body);
     assertWorkspaceAccess(req.user!.id, body.workspaceId, 'developer');
-    const service = requireService(req.user!.id, req.params.serviceId, 'developer');
+    const { service } = requireService(req.user!.id, req.params.serviceId, 'developer');
     const ctx = ctxFor(body.workspaceId);
     if (!service.provider_service_id || !service.provider_environment_id) {
       throw unavailable('This service is not linked to a Railway service.');
@@ -689,7 +689,7 @@ railwayRouter.post(
   route(async (req, res) => {
     const body = parse(workspaceRef.extend({ deploymentId: z.string().min(1) }), req.body);
     assertWorkspaceAccess(req.user!.id, body.workspaceId, 'developer');
-    const service = requireService(req.user!.id, req.params.serviceId, 'developer');
+    const { service } = requireService(req.user!.id, req.params.serviceId, 'developer');
     const ctx = ctxFor(body.workspaceId);
     if (!service.provider_service_id || !service.provider_environment_id) {
       throw unavailable('This service is not linked to a Railway service.');
@@ -728,7 +728,7 @@ railwayRouter.post(
   route(async (req, res) => {
     const body = parse(workspaceRef, req.body);
     assertWorkspaceAccess(req.user!.id, body.workspaceId, 'developer');
-    const service = requireService(req.user!.id, req.params.serviceId, 'developer');
+    const { service } = requireService(req.user!.id, req.params.serviceId, 'developer');
     const ctx = ctxFor(body.workspaceId);
     if (!service.provider_service_id || !service.provider_environment_id) {
       throw unavailable('This service is not linked to a Railway service.');
@@ -749,11 +749,11 @@ railwayRouter.post(
   '/services/:serviceId/variables',
   route(async (req, res) => {
     const body = parse(
-      workspaceRef.extend({ variables: z.record(z.string()) }),
+      workspaceRef.extend({ variables: z.record(z.string(), z.string()) }),
       req.body,
     );
     assertWorkspaceAccess(req.user!.id, body.workspaceId, 'developer');
-    const service = requireService(req.user!.id, req.params.serviceId, 'developer');
+    const { service } = requireService(req.user!.id, req.params.serviceId, 'developer');
     const ctx = ctxFor(body.workspaceId);
     if (!service.provider_service_id || !service.provider_environment_id) {
       throw unavailable('This service is not linked to a Railway service.');
@@ -787,7 +787,7 @@ railwayRouter.delete(
   route(async (req, res) => {
     const { workspaceId } = parse(workspaceRef, req.query);
     assertWorkspaceAccess(req.user!.id, workspaceId, 'admin');
-    const service = requireService(req.user!.id, req.params.serviceId, 'admin');
+    const { service } = requireService(req.user!.id, req.params.serviceId, 'admin');
     const ctx = ctxFor(workspaceId);
     if (!service.provider_service_id) {
       throw unavailable('This service is not linked to a Railway service.');

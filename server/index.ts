@@ -12,6 +12,7 @@ import { workspaceRouter } from './routes/workspaces.js';
 import { projectRouter } from './routes/projects.js';
 import { serviceRouter, webhookRouter } from './routes/services.js';
 import { providerRouter } from './routes/providers.js';
+import { railwayRouter } from './routes/railway.js';
 import { templateRouter } from './routes/templates.js';
 import { adminRouter } from './routes/admin.js';
 import { dashboardRouter } from './routes/dashboard.js';
