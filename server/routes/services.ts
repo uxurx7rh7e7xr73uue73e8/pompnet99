@@ -121,7 +121,7 @@ serviceRouter.post(
       body.branch ?? null,
       body.dockerImage ?? null,
       body.templateSlug ?? null,
-      body.rootDirectory ?? null,
+      body.rootDirectory ?? '/',
       body.buildCommand ?? null,
       body.startCommand ?? null,
       body.healthcheckPath ?? null,
