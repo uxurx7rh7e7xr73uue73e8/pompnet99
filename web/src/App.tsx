@@ -371,6 +371,7 @@ export default function App() {
       {[
         { path: '/dashboard', el: <Dashboard /> },
         { path: '/projects', el: <Projects /> },
+        { path: '/railway', el: <Railway /> },
         { path: '/projects/:projectId', el: <ProjectDetail /> },
         { path: '/services/:serviceId', el: <ServiceDetail /> },
         { path: '/templates', el: <Templates /> },
