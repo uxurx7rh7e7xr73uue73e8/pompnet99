@@ -54,6 +54,44 @@ export default function ProjectDetail() {
   });
   const [dbForm, setDbForm] = useState({ name: '', engine: 'postgres', environmentId: '' });
   const [envForm, setEnvForm] = useState({ name: '' });
+  const [ghRepos, setGhRepos] = useState<Array<{ fullName: string; defaultBranch: string; private: boolean }>>([]);
+  const [ghBranches, setGhBranches] = useState<Array<{ name: string }>>([]);
+  const [repoBusy, setRepoBusy] = useState(false);
+  const [repoNote, setRepoNote] = useState('');
+
+  const ghWorkspaceId = (): string => String((data as any)?.project?.workspace_id ?? '');
+
+  const loadRepos = async () => {
+    const workspaceId = ghWorkspaceId();
+    if (!workspaceId) return;
+    setRepoBusy(true);
+    setRepoNote('');
+    try {
+      const res = await get<any>(`/providers/github/repos?workspaceId=${encodeURIComponent(workspaceId)}`);
+      const list = (res.repos ?? []) as Array<{ fullName: string; defaultBranch: string; private: boolean }>;
+      setGhRepos(list);
+      if (!list.length) {
+        setRepoNote(t('هیچ مخزنی در حساب گیت‌هاب متصل پیدا نشد.', 'No repository found in the connected GitHub account.'));
+      }
+    } catch (err) {
+      setRepoNote(errorMessage(err));
+    } finally {
+      setRepoBusy(false);
+    }
+  };
+
+  const loadBranches = async (repo: string) => {
+    const workspaceId = ghWorkspaceId();
+    if (!workspaceId || !repo) return;
+    try {
+      const res = await get<any>(
+        `/providers/github/branches?workspaceId=${encodeURIComponent(workspaceId)}&repo=${encodeURIComponent(repo)}`,
+      );
+      setGhBranches((res.branches ?? []) as Array<{ name: string }>);
+    } catch {
+      setGhBranches([]);
+    }
+  };
 
   const load = useCallback(async () => {
     if (!projectId) return;
