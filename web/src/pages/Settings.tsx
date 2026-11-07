@@ -28,6 +28,7 @@ export default function Settings() {
   const [sessions, setSessions] = useState<any[]>([]);
   const [providers, setProviders] = useState<any>(null);
   const [railway, setRailway] = useState({ token: '', label: 'My Railway account' });
+  const [ghConnect, setGhConnect] = useState({ token: '', label: 'My GitHub account' });
   const [busy, setBusy] = useState(false);
   const [githubNote, setGithubNote] = useState('');
   const [repos, setRepos] = useState<any[] | null>(null);
