@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../lib/auth';
 import { useLang } from '../lib/i18n';
-import { errorMessage, post } from '../lib/api';
+import { errorMessage, get, post } from '../lib/api';
 import { Alert, Button, Card, CopyField, Field, Icon, Input, useToast } from '../lib/ui';
 
 type Mode = 'login' | 'register' | 'verify' | 'forgot' | 'reset';
@@ -33,11 +33,31 @@ export default function Auth({ mode }: { mode: Mode }) {
   const [notice, setNotice] = useState('');
   const [devLink, setDevLink] = useState<string | null>(null);
   const [delivery, setDelivery] = useState<'sent' | 'not_configured' | null>(null);
+  const [oauth, setOauth] = useState<{
+    github: { configured: boolean };
+    google: { configured: boolean };
+  } | null>(null);
 
   useEffect(() => {
     const token = params.get('token');
     if (token) setForm((f) => ({ ...f, token }));
   }, [params]);
+
+  useEffect(() => {
+    if (mode !== 'login' && mode !== 'register') return;
+    get<{ github: { configured: boolean }; google: { configured: boolean } }>('/auth/oauth/providers')
+      .then(setOauth)
+      .catch(() => setOauth(null));
+  }, [mode]);
+
+  useEffect(() => {
+    const message = params.get('oauth_message');
+    if (message) setError(message);
+  }, [params]);
+
+  const startOauth = (provider: 'github' | 'google') => {
+    window.location.href = `/api/auth/oauth/${provider}/start`;
+  };
 
   const copy = COPY[mode];
   const heading = useMemo(() => t(copy.fa[0], copy.en[0]), [copy, t]);
@@ -205,6 +225,50 @@ export default function Auth({ mode }: { mode: Mode }) {
                       : t('ذخیره رمز جدید', 'Save new password')}
             </Button>
           </form>
+
+          {mode === 'login' || mode === 'register' ? (
+            <div className="mt-4 space-y-2">
+              <div className="flex items-center gap-2 text-[10px] uppercase tracking-[0.14em] text-[#7E7790]">
+                <span className="h-px flex-1 bg-white/10" />
+                {t('یا ادامه با', 'or continue with')}
+                <span className="h-px flex-1 bg-white/10" />
+              </div>
+              <div className="grid grid-cols-2 gap-2">
+                <Button
+                  variant="outline"
+                  onClick={() => startOauth('github')}
+                  disabled={!oauth?.github.configured}
+                  title={
+                    oauth?.github.configured
+                      ? t('ورود با GitHub', 'Sign in with GitHub')
+                      : t('نیاز به تنظیم GITHUB_CLIENT_ID و GITHUB_CLIENT_SECRET', 'Needs GITHUB_CLIENT_ID and GITHUB_CLIENT_SECRET')
+                  }
+                >
+                  GitHub
+                </Button>
+                <Button
+                  variant="outline"
+                  onClick={() => startOauth('google')}
+                  disabled={!oauth?.google.configured}
+                  title={
+                    oauth?.google.configured
+                      ? t('ورود با Google', 'Sign in with Google')
+                      : t('نیاز به تنظیم GOOGLE_CLIENT_ID و GOOGLE_CLIENT_SECRET', 'Needs GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET')
+                  }
+                >
+                  Google
+                </Button>
+              </div>
+              {oauth && (!oauth.github.configured || !oauth.google.configured) ? (
+                <p className="text-[11px] leading-relaxed text-[#7E7790]">
+                  {t(
+                    'دکمه‌های خاکستری تا زمانی که کلید OAuth آن ارائه‌دهنده در متغیرهای محیطی سرور تنظیم نشود غیرفعال می‌مانند.',
+                    'Greyed buttons stay disabled until that provider OAuth client is configured in the server environment variables.',
+                  )}
+                </p>
+              ) : null}
+            </div>
+          ) : null}
 
           <div className="mt-4 flex flex-wrap items-center justify-between gap-2 border-t border-white/[0.07] pt-3 text-[11px] text-[#7E7790]">
             {mode === 'login' ? (

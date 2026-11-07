@@ -7,6 +7,7 @@ import { fileURLToPath } from 'node:url';
 import { db, migrate } from './db.js';
 import { attachUser } from './lib/auth.js';
 import { ApiError } from './lib/http.js';
+import { oauthRouter } from './routes/auth-oauth.js';
 import { authRouter } from './routes/auth.js';
 import { workspaceRouter } from './routes/workspaces.js';
 import { projectRouter } from './routes/projects.js';
@@ -69,6 +70,7 @@ app.use('/api', (req, _res, next) => {
   next();
 });
 
+app.use('/api/auth/oauth', oauthRouter);
 app.use('/api/auth', authRouter);
 app.use('/api/workspaces', workspaceRouter);
 app.use('/api/projects', projectRouter);
