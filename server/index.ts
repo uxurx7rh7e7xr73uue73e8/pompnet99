@@ -73,6 +73,7 @@ app.use('/api/workspaces', workspaceRouter);
 app.use('/api/projects', projectRouter);
 app.use('/api/services', serviceRouter);
 app.use('/api/providers', providerRouter);
+app.use('/api/railway', railwayRouter);
 app.use('/api/templates', templateRouter);
 app.use('/api/admin', adminRouter);
 app.use('/api/dashboard', dashboardRouter);
