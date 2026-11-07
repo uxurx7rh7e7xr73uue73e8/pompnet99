@@ -6,7 +6,7 @@ import { audit } from '../lib/audit.js';
 import { ApiError, conflict, forbidden, notFound, nowIso, parse, route } from '../lib/http.js';
 import { decryptSecret, encryptSecret, randomToken, sha256 } from '../lib/crypto.js';
 import { rateLimit } from '../lib/rateLimit.js';
-import { getAdapter } from '../providers/index.js';
+import { envProviderToken, getAdapter } from '../providers/index.js';
 
 export const providerRouter = Router();
 providerRouter.use(requireAuth);
@@ -62,8 +62,22 @@ providerRouter.get(
     const adapter = getAdapter('railway');
     res.json({
       railway: {
-        connected: Boolean(railway),
-        connection: railway ? connectionSummary(railway) : null,
+        connected: Boolean(railway) || Boolean(envProviderToken('railway')),
+        source: railway ? 'workspace' : envProviderToken('railway') ? 'server' : null,
+        connection: railway
+          ? connectionSummary(railway)
+          : envProviderToken('railway')
+            ? {
+                id: 'server-env',
+                provider: 'railway',
+                label: 'Server environment token',
+                accountName: null,
+                accountEmail: null,
+                status: 'connected',
+                lastCheckedAt: null,
+                createdAt: null,
+              }
+            : null,
         capabilities: adapter.capabilities,
         displayName: adapter.displayName,
         docsUrl: RAILWAY_DOCS,

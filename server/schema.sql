@@ -309,3 +309,14 @@ CREATE TABLE IF NOT EXISTS error_reports (
   created_at TEXT NOT NULL
 );
 CREATE INDEX IF NOT EXISTS idx_errors_created ON error_reports(created_at DESC);
+
+CREATE TABLE IF NOT EXISTS oauth_accounts (
+  id TEXT PRIMARY KEY,
+  user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  provider TEXT NOT NULL CHECK (provider IN ('github','google')),
+  provider_user_id TEXT NOT NULL,
+  email TEXT,
+  created_at TEXT NOT NULL,
+  UNIQUE (provider, provider_user_id)
+);
+CREATE INDEX IF NOT EXISTS idx_oauth_user ON oauth_accounts(user_id);
