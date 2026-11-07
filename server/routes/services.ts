@@ -33,7 +33,7 @@ function resolveEnvironmentId(service: { project_id: string; environment_id: str
 
 function providerCapabilities(workspaceId: string) {
   const row = db
-    .prepare(`SELECT id, label, account_name, created_at, last_verified_at FROM provider_connections
+    .prepare(`SELECT id, label, account_name, created_at, last_checked_at FROM provider_connections
                WHERE workspace_id = ? AND provider = 'railway'`)
     .get(workspaceId) as any;
   const ctx = row ? requireProviderConnection(workspaceId, 'railway') : null;
@@ -660,7 +660,7 @@ serviceRouter.get(
 serviceRouter.post(
   '/:id/variables',
   route(async (req, res) => {
-    const { service, role } = requireService(req.user!.id, req.params.id, 'viewer');
+    const { service, project, role } = requireService(req.user!.id, req.params.id, 'viewer');
     assertCanWrite(role, 'manage variables');
     const body = parse(
       z.object({
@@ -729,7 +729,7 @@ serviceRouter.post(
 serviceRouter.delete(
   '/:id/variables/:variableId',
   route(async (req, res) => {
-    const { service, role } = requireService(req.user!.id, req.params.id, 'viewer');
+    const { service, project, role } = requireService(req.user!.id, req.params.id, 'viewer');
     assertCanWrite(role, 'delete variables');
     const existing = db
       .prepare('SELECT id, key FROM environment_variables WHERE id = ? AND service_id = ?')
