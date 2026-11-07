@@ -437,6 +437,47 @@ export default function Settings() {
                   </Alert>
                 ) : null}
                 {githubNote ? <p className="text-[11px] text-[#A9A2BA]">{githubNote}</p> : null}
+
+                <div className="space-y-2 rounded-xl border border-white/[0.07] bg-white/[0.02] p-3">
+                  <p className="text-xs font-medium text-[#F5F2FF]">
+                    {t('اتصال مستقیم با توکن GitHub (بدون OAuth App)', 'Direct connection with a GitHub token (no OAuth app)')}
+                  </p>
+                  <Field
+                    label={t('توکن GitHub', 'GitHub token')}
+                    required
+                    hint={t(
+                      'مخازن خصوصی هم دیده می‌شوند اگر توکن دسترسی repo داشته باشد. توکن فقط در سرور رمزنگاری می‌شود.',
+                      'Private repositories are included when the token has repo scope. The token is encrypted server-side only.',
+                    )}
+                  >
+                    <Input
+                      type="password"
+                      value={ghConnect.token}
+                      onChange={(e) => setGhConnect({ ...ghConnect, token: e.target.value })}
+                      dir="ltr"
+                      className="font-mono text-xs"
+                      placeholder="ghp_…"
+                    />
+                  </Field>
+                  <p className="text-[11px] text-[#A9A2BA]">
+                    {t(
+                      'GitHub ← Settings ← Developer settings ← Personal access tokens → یک توکن با دسترسی repo بساز و اینجا وارد کن.',
+                      'GitHub → Settings → Developer settings → Personal access tokens → create a token with repo scope and paste it here.',
+                    )}{' '}
+                    <a href="https://github.com/settings/tokens/new?scopes=repo&description=POMP%20NET%20CLOUD" target="_blank" rel="noreferrer" className="text-[#168CFF] underline">
+                      {t('ساخت توکن', 'Create token')}
+                    </a>
+                  </p>
+                  <Button
+                    size="sm"
+                    onClick={connectGithubToken}
+                    loading={busy}
+                    disabled={ghConnect.token.trim().length < 20}
+                    icon="plug"
+                  >
+                    {t('اتصال و اعتبارسنجی', 'Connect & validate')}
+                  </Button>
+                </div>
               </div>
             )}
           </Card>
