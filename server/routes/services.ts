@@ -710,7 +710,7 @@ serviceRouter.post(
       }
     })();
     logActivity({
-      workspaceId: service.workspace_id ?? '',
+      workspaceId: project.workspace_id,
       projectId: service.project_id,
       actorId: req.user!.id,
       actorName: req.user!.name,
@@ -737,7 +737,7 @@ serviceRouter.delete(
     if (!existing) throw notFound('Variable not found');
     db.prepare('DELETE FROM environment_variables WHERE id = ?').run(existing.id);
     logActivity({
-      workspaceId: service.workspace_id ?? '',
+      workspaceId: project.workspace_id,
       projectId: service.project_id,
       actorId: req.user!.id,
       actorName: req.user!.name,
