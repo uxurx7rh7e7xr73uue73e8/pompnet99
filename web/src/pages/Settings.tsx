@@ -414,6 +414,122 @@ export default function Settings() {
         </div>
       ) : null}
 
+      {tab === 'login' ? (
+        <div className="space-y-3">
+          <Alert tone="info" title={t('فعال‌سازی ورود با GitHub و Google', 'Enable GitHub & Google sign-in')}>
+            {t(
+              'برای فعال شدن دکمه‌های ورود، Client ID و Client Secret اپ OAuth خودت را اینجا ذخیره کن. مقادیر رمزنگاری‌شده در سرور می‌مانند و هرگز به مرورگر برنمی‌گردند.',
+              'Save the Client ID and Client Secret of your own OAuth app here to enable the sign-in buttons. Values stay encrypted on the server and are never returned to the browser.',
+            )}
+          </Alert>
+          {oauthCfg === null ? (
+            <Skeleton className="h-24" />
+          ) : (
+            (['github', 'google'] as const).map((provider) => {
+              const info = oauthCfg[provider];
+              const form = oauthForm[provider];
+              const title = provider === 'github' ? 'GitHub' : 'Google';
+              const fromSettings = info?.clientIdSource === 'settings' || info?.secretSource === 'settings';
+              return (
+                <Card key={provider}>
+                  <SectionTitle
+                    title={title}
+                    subtitle={t(`ورود با حساب ${title}`, `Sign in with ${title}`)}
+                    action={
+                      info?.configured ? (
+                        <Badge status="active">{t('فعال', 'active')}</Badge>
+                      ) : (
+                        <Badge status="pending">{t('غیرفعال', 'disabled')}</Badge>
+                      )
+                    }
+                  />
+                  <div className="space-y-3">
+                    <Field label="Client ID" required>
+                      <Input
+                        value={form.clientId}
+                        onChange={(e) => updateOauthForm(provider, { clientId: e.target.value })}
+                        dir="ltr"
+                        className="font-mono text-xs"
+                      />
+                    </Field>
+                    <Field
+                      label="Client Secret"
+                      hint={
+                        info?.hasSecret
+                          ? t('ذخیره شده — برای تغییر مقدار جدید وارد کن', 'Saved — enter a new value to replace it')
+                          : t('فقط روی سرور ذخیره می‌شود', 'Stored server-side only')
+                      }
+                    >
+                      <Input
+                        type="password"
+                        value={form.clientSecret}
+                        onChange={(e) => updateOauthForm(provider, { clientSecret: e.target.value })}
+                        dir="ltr"
+                        className="font-mono text-xs"
+                        placeholder={info?.hasSecret ? '••••••••' : ''}
+                      />
+                    </Field>
+                    <div>
+                      <p className="mb-1 text-[10px] uppercase tracking-wider text-[#7E7790]">
+                        {t('Callback URL — همین را در اپ OAuth ثبت کن', 'Callback URL — register this in the OAuth app')}
+                      </p>
+                      <CopyField value={info?.callbackUrl ?? ''} />
+                    </div>
+                    <div className="flex flex-wrap items-center gap-2">
+                      <Button
+                        size="sm"
+                        onClick={() => saveOauth(provider)}
+                        loading={busy}
+                        disabled={!form.clientId.trim()}
+                        icon="check"
+                      >
+                        {t('ذخیره و فعال‌سازی', 'Save & enable')}
+                      </Button>
+                      {fromSettings ? (
+                        <Button size="sm" variant="danger" icon="trash" onClick={() => clearOauth(provider)}>
+                          {t('حذف تنظیمات', 'Clear settings')}
+                        </Button>
+                      ) : null}
+                      <a
+                        href={provider === 'github' ? oauthCfg.authorizeUrls.github : oauthCfg.authorizeUrls.google}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="text-[11px] text-[#168CFF] underline"
+                      >
+                        {provider === 'github'
+                          ? t('ساخت OAuth App در GitHub', 'Create a GitHub OAuth App')
+                          : t('ساخت OAuth Client در Google Cloud', 'Create a Google OAuth client')}
+                      </a>
+                    </div>
+                    {info?.configured ? (
+                      <p className="text-[11px] text-[#A9A2BA]">
+                        {t(
+                          'دکمهٔ ورود این ارائه‌دهنده اکنون روی صفحهٔ ورود فعال است.',
+                          'This provider button is now active on the sign-in page.',
+                        )}
+                      </p>
+                    ) : (
+                      <p className="text-[11px] text-[#7E7790]">
+                        {t(
+                          'تا وقتی Client ID و Secret هر دو موجود نباشند، دکمهٔ ورود خاکستری می‌ماند.',
+                          'Until both the client ID and secret exist, the sign-in button stays disabled.',
+                        )}
+                      </p>
+                    )}
+                  </div>
+                </Card>
+              );
+            })
+          )}
+          <Alert tone="warn" title={t('ذخیره‌سازی پایدار', 'Durable storage')}>
+            {t(
+              'این مقادیر در پایگاه دادهٔ همین اپ ذخیره می‌شوند. اگر پلن رایگان باشد و دیسک پایدار نداشته باشی، همان مقادیر را به‌صورت GITHUB_CLIENT_ID/GITHUB_CLIENT_SECRET و GOOGLE_CLIENT_ID/GOOGLE_CLIENT_SECRET در متغیرهای محیطی هم تنظیم کن.',
+              'These values live in this app database. Without a persistent disk, also set GITHUB_CLIENT_ID/GITHUB_CLIENT_SECRET and GOOGLE_CLIENT_ID/GOOGLE_CLIENT_SECRET as environment variables.',
+            )}
+          </Alert>
+        </div>
+      ) : null}
+
       {tab === 'workspace' ? (
         <Card>
           <SectionTitle title={t('ورک‌اسپیس فعال', 'Active workspace')} subtitle={t('منابع هر ورک‌اسپیس جداگانه است', 'Resources are isolated per workspace')} />
