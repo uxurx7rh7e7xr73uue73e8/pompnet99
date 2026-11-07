@@ -388,9 +388,51 @@ export default function ProjectDetail() {
           </Field>
           {serviceForm.sourceType === 'github' ? (
             <>
+              <div className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-white/[0.07] bg-white/[0.02] p-3">
+                <p className="text-[11px] text-[#A9A2BA]">
+                  {t(
+                    'مخازن حساب گیت‌هاب متصل را مستقیم انتخاب کن، یا نام مخزن را دستی بنویس.',
+                    'Pick a repository from the connected GitHub account, or type the name manually.',
+                  )}
+                </p>
+                <Button size="sm" variant="secondary" icon="refresh" loading={repoBusy} onClick={() => void loadRepos()}>
+                  {t('مخازن من', 'My repositories')}
+                </Button>
+              </div>
+              {repoNote ? <p className="text-[11px] text-amber-300">{repoNote}</p> : null}
+              {ghRepos.length ? (
+                <Field label={t('انتخاب مخزن', 'Pick a repository')}>
+                  <Select
+                    value={serviceForm.repoFullName}
+                    onChange={(e) => {
+                      const repo = e.target.value;
+                      const picked = ghRepos.find((r) => r.fullName === repo);
+                      setServiceForm((f) => ({ ...f, repoFullName: repo, branch: picked?.defaultBranch || f.branch }));
+                      void loadBranches(repo);
+                    }}
+                  >
+                    <option value="">{t('— انتخاب کن —', '— select —')}</option>
+                    {ghRepos.map((r) => (
+                      <option key={r.fullName} value={r.fullName}>
+                        {r.fullName}
+                        {r.private ? ' · private' : ''}
+                      </option>
+                    ))}
+                  </Select>
+                </Field>
+              ) : null}
               <Field label={t('مخزن (owner/name)', 'Repository (owner/name)')} required>
                 <Input value={serviceForm.repoFullName} onChange={(e) => setServiceForm({ ...serviceForm, repoFullName: e.target.value })} dir="ltr" className="font-mono text-xs" placeholder="owner/repo" />
               </Field>
+              {ghBranches.length ? (
+                <Field label={t('انتخاب شاخه', 'Pick a branch')}>
+                  <Select value={serviceForm.branch} onChange={(e) => setServiceForm({ ...serviceForm, branch: e.target.value })}>
+                    {ghBranches.map((b) => (
+                      <option key={b.name} value={b.name}>{b.name}</option>
+                    ))}
+                  </Select>
+                </Field>
+              ) : null}
               <Field label={t('شاخه', 'Branch')}>
                 <Input value={serviceForm.branch} onChange={(e) => setServiceForm({ ...serviceForm, branch: e.target.value })} dir="ltr" className="font-mono text-xs" />
               </Field>
