@@ -20,7 +20,10 @@ dashboardRouter.get(
         'SELECT COUNT(*) c FROM services s JOIN projects p ON p.id = s.project_id WHERE p.workspace_id = ?',
         workspaceId,
       ),
-      databases: num('SELECT COUNT(*) c FROM databases WHERE workspace_id = ?', workspaceId),
+      databases: num(
+        'SELECT COUNT(*) c FROM databases d JOIN projects p ON p.id = d.project_id WHERE p.workspace_id = ?',
+        workspaceId,
+      ),
       environments: num(
         'SELECT COUNT(*) c FROM environments e JOIN projects p ON p.id = e.project_id WHERE p.workspace_id = ?',
         workspaceId,

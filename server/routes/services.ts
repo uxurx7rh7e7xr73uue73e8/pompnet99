@@ -109,8 +109,8 @@ serviceRouter.post(
     db.prepare(
       `INSERT INTO services (id, project_id, environment_id, name, source_type, repo_full_name, branch,
          docker_image, template_slug, root_directory, build_command, start_command, healthcheck_path,
-         auto_deploy, webhook_secret, created_by, created_at, updated_at)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+         auto_deploy, webhook_secret, created_at, updated_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
     ).run(
       id,
       project.id,
@@ -127,7 +127,6 @@ serviceRouter.post(
       body.healthcheckPath ?? null,
       body.autoDeploy ? 1 : 0,
       randomToken(24),
-      req.user!.id,
       now,
       now,
     );
