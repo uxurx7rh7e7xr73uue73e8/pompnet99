@@ -280,11 +280,51 @@ export default function Auth({ mode }: { mode: Mode }) {
               {oauth && (!oauth.github.configured || !oauth.google.configured) ? (
                 <p className="text-[11px] leading-relaxed text-[#7E7790]">
                   {t(
-                    'دکمه‌های خاکستری تا زمانی که کلید OAuth آن ارائه‌دهنده در متغیرهای محیطی سرور تنظیم نشود غیرفعال می‌مانند.',
-                    'Greyed buttons stay disabled until that provider OAuth client is configured in the server environment variables.',
+                    'دکمهٔ خاکستری تا زمانی که کلید OAuth آن ارائه‌دهنده تنظیم نشود غیرفعال می‌ماند؛ برای GitHub همین حالا می‌توانی با توکن وارد شوی.',
+                    'A greyed button stays disabled until that provider OAuth client is configured; for GitHub you can sign in with a token right now.',
                   )}
                 </p>
               ) : null}
+              <div className="pt-1">
+                <button
+                  type="button"
+                  onClick={() => setTokenOpen((v) => !v)}
+                  className="text-[11px] text-[#168CFF] hover:underline"
+                >
+                  {tokenOpen
+                    ? t('بستن ورود با توکن', 'Hide token sign-in')
+                    : t('ورود با توکن GitHub (بدون OAuth App)', 'Sign in with a GitHub token (no OAuth app)')}
+                </button>
+                {tokenOpen ? (
+                  <div className="mt-2 space-y-2 rounded-xl border border-white/[0.07] bg-white/[0.02] p-3">
+                    <Field
+                      label={t('توکن GitHub', 'GitHub token')}
+                      hint={t(
+                        'هویت با API گیت‌هاب تأیید می‌شود؛ توکن ذخیره نمی‌شود.',
+                        'Identity is verified through the GitHub API; the token is never stored.',
+                      )}
+                    >
+                      <Input
+                        type="password"
+                        dir="ltr"
+                        className="font-mono text-xs"
+                        placeholder="ghp_…"
+                        value={ghToken}
+                        onChange={(e) => setGhToken(e.target.value)}
+                      />
+                    </Field>
+                    <Button
+                      size="sm"
+                      onClick={signInWithGithubToken}
+                      loading={busy}
+                      disabled={ghToken.trim().length < 20}
+                      icon="check"
+                    >
+                      {t('تأیید و ورود', 'Verify & sign in')}
+                    </Button>
+                  </div>
+                ) : null}
+              </div>
             </div>
           ) : null}
 
