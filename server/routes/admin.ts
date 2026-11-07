@@ -24,20 +24,27 @@ adminRouter.get(
   route(async (_req, res) => {
     const maintenance = db.prepare(`SELECT value FROM platform_settings WHERE key = 'maintenance_mode'`).get() as any;
     const signup = db.prepare(`SELECT value FROM platform_settings WHERE key = 'signup_enabled'`).get() as any;
-    res.json({
-      users: count('SELECT COUNT(*) c FROM users'),
-      suspendedUsers: count('SELECT COUNT(*) c FROM users WHERE suspended_at IS NOT NULL'),
-      workspaces: count('SELECT COUNT(*) c FROM workspaces'),
-      projects: count('SELECT COUNT(*) c FROM projects'),
-      services: count('SELECT COUNT(*) c FROM services'),
-      deployments: count('SELECT COUNT(*) c FROM deployments'),
-      runningDeployments: count(`SELECT COUNT(*) c FROM deployments WHERE status = 'running'`),
-      failedDeployments: count(`SELECT COUNT(*) c FROM deployments WHERE status = 'failed'`),
-      databases: count('SELECT COUNT(*) c FROM databases'),
-      providerConnections: count('SELECT COUNT(*) c FROM provider_connections'),
-      openErrors: count('SELECT COUNT(*) c FROM error_reports WHERE resolved_at IS NULL'),
+    const notice = db.prepare(`SELECT value FROM platform_settings WHERE key = 'platform_notice'`).get() as any;
+    const settings = {
       maintenanceMode: maintenance ? JSON.parse(maintenance.value) === true : false,
       signupEnabled: signup ? JSON.parse(signup.value) !== false : true,
+      platformNotice: notice ? String(JSON.parse(notice.value) ?? '') : '',
+    };
+    res.json({
+      counts: {
+        users: count('SELECT COUNT(*) c FROM users'),
+        suspendedUsers: count('SELECT COUNT(*) c FROM users WHERE suspended_at IS NOT NULL'),
+        workspaces: count('SELECT COUNT(*) c FROM workspaces'),
+        projects: count('SELECT COUNT(*) c FROM projects'),
+        services: count('SELECT COUNT(*) c FROM services'),
+        deployments: count('SELECT COUNT(*) c FROM deployments'),
+        runningDeployments: count(`SELECT COUNT(*) c FROM deployments WHERE status = 'running'`),
+        failedDeployments: count(`SELECT COUNT(*) c FROM deployments WHERE status = 'failed'`),
+        databases: count('SELECT COUNT(*) c FROM databases'),
+        providerConnections: count('SELECT COUNT(*) c FROM provider_connections'),
+        errorReports: count('SELECT COUNT(*) c FROM error_reports'),
+      },
+      settings,
     });
   }),
 );

@@ -6,7 +6,7 @@ import { requireAuth } from '../lib/auth.js';
 import { assertCanWrite, requireProject, requireService } from '../lib/access.js';
 import { audit, logActivity } from '../lib/audit.js';
 import { ApiError, conflict, forbidden, notFound, nowIso, parse, route } from '../lib/http.js';
-import { randomToken } from '../lib/crypto.js';
+import { randomToken, encryptSecret } from '../lib/crypto.js';
 import { requireProviderConnection } from '../providers/index.js';
 import {
   deploymentWithLogs,
