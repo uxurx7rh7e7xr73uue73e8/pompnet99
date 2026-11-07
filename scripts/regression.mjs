@@ -246,7 +246,7 @@ try {
     : fail('dashboard aggregates real rows', `status ${dashboard.status}`);
 
   const search = await owner.get(`/api/dashboard/search?workspaceId=${workspaceId}&q=Regression`);
-  Array.isArray(search.body?.results) && search.body.results.length
+  Array.isArray(search.body?.projects) && search.body.projects.length
     ? ok('global search finds project')
     : fail('global search finds project', JSON.stringify(search.body));
 
