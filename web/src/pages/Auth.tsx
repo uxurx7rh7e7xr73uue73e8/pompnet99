@@ -61,6 +61,22 @@ export default function Auth({ mode }: { mode: Mode }) {
     window.location.href = `/api/auth/oauth/${provider}/start`;
   };
 
+  const signInWithGithubToken = async () => {
+    setBusy(true);
+    setError('');
+    setNotice('');
+    try {
+      await post('/auth/oauth/github/token', { token: ghToken.trim() });
+      await refresh();
+      toast.success(t('ورود با GitHub تأیید شد', 'Signed in with GitHub'));
+      navigate('/dashboard', { replace: true });
+    } catch (err) {
+      setError(errorMessage(err));
+    } finally {
+      setBusy(false);
+    }
+  };
+
   const copy = COPY[mode];
   const heading = useMemo(() => t(copy.fa[0], copy.en[0]), [copy, t]);
   const sub = useMemo(() => t(copy.fa[1], copy.en[1]), [copy, t]);
