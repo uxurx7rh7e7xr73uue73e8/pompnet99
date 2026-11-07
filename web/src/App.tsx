@@ -16,10 +16,12 @@ import Team from './pages/Team';
 import Usage from './pages/Usage';
 import Settings from './pages/Settings';
 import Admin from './pages/Admin';
+import Railway from './pages/Railway';
 
 const NAV = [
   { to: '/dashboard', key: 'dashboard', fa: 'داشبورد', en: 'Dashboard', icon: 'grid' },
   { to: '/projects', key: 'projects', fa: 'پروژه‌ها', en: 'Projects', icon: 'box' },
+  { to: '/railway', key: 'railway', fa: 'ریلوی', en: 'Railway', icon: 'box' },
   { to: '/templates', key: 'templates', fa: 'قالب‌ها', en: 'Templates', icon: 'layers' },
   { to: '/team', key: 'team', fa: 'تیم', en: 'Team', icon: 'users' },
   { to: '/usage', key: 'usage', fa: 'مصرف و صورتحساب', en: 'Usage & billing', icon: 'chart' },
@@ -179,6 +181,7 @@ function Shell({ children }: { children: ReactNode }) {
     const map: Record<string, string> = {
       dashboard: t('داشبورد', 'Dashboard'),
       projects: t('پروژه‌ها', 'Projects'),
+      railway: t('ریلوی', 'Railway'),
       services: t('سرویس', 'Service'),
       templates: t('قالب‌ها', 'Templates'),
       team: t('تیم', 'Team'),
