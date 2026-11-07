@@ -641,6 +641,115 @@ serviceRouter.post(
   }),
 );
 
+/* --------------------------- service variables ----------------------------- */
+
+serviceRouter.get(
+  '/:id/variables',
+  route(async (req, res) => {
+    const { service, role } = requireService(req.user!.id, req.params.id, 'viewer');
+    const rows = db
+      .prepare(
+        `SELECT id, key, is_secret, environment_id, updated_at FROM environment_variables
+          WHERE service_id = ? ORDER BY key ASC`,
+      )
+      .all(service.id);
+    res.json({ variables: rows, revealAllowed: role === 'owner' || role === 'admin' });
+  }),
+);
+
+serviceRouter.post(
+  '/:id/variables',
+  route(async (req, res) => {
+    const { service, role } = requireService(req.user!.id, req.params.id, 'viewer');
+    assertCanWrite(role, 'manage variables');
+    const body = parse(
+      z.object({
+        environmentId: z.string().min(1).optional(),
+        variables: z
+          .array(
+            z.object({
+              key: z.string().trim().regex(/^[A-Za-z_][A-Za-z0-9_]*$/, 'Invalid variable name'),
+              value: z.string().max(20000),
+              isSecret: z.boolean().optional().default(false),
+            }),
+          )
+          .min(1)
+          .max(200),
+      }),
+      req.body,
+    );
+    const environmentId = body.environmentId ?? resolveEnvironmentId(service);
+    const environment = db
+      .prepare('SELECT id FROM environments WHERE id = ? AND project_id = ?')
+      .get(environmentId, service.project_id);
+    if (!environment) throw notFound('Environment not found');
+
+    const now = nowIso();
+    const upsert = db.prepare(
+      `INSERT INTO environment_variables (id, project_id, environment_id, service_id, key, value_encrypted, is_secret, created_by, created_at, updated_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+       ON CONFLICT (environment_id, service_id, key) DO UPDATE SET
+         value_encrypted = excluded.value_encrypted,
+         is_secret = excluded.is_secret,
+         updated_at = excluded.updated_at`,
+    );
+    db.transaction(() => {
+      for (const v of body.variables) {
+        upsert.run(
+          randomToken(12),
+          service.project_id,
+          environmentId,
+          service.id,
+          v.key,
+          encryptSecret(v.value),
+          v.isSecret ? 1 : 0,
+          req.user!.id,
+          now,
+          now,
+        );
+      }
+    })();
+    logActivity({
+      workspaceId: service.workspace_id ?? '',
+      projectId: service.project_id,
+      actorId: req.user!.id,
+      actorName: req.user!.name,
+      action: 'variables.saved',
+      targetType: 'service',
+      targetId: service.id,
+      metadata: { keys: body.variables.map((v) => v.key) },
+    });
+    const rows = db
+      .prepare('SELECT id, key, is_secret, environment_id, updated_at FROM environment_variables WHERE service_id = ? ORDER BY key ASC')
+      .all(service.id);
+    res.status(201).json({ variables: rows });
+  }),
+);
+
+serviceRouter.delete(
+  '/:id/variables/:variableId',
+  route(async (req, res) => {
+    const { service, role } = requireService(req.user!.id, req.params.id, 'viewer');
+    assertCanWrite(role, 'delete variables');
+    const existing = db
+      .prepare('SELECT id, key FROM environment_variables WHERE id = ? AND service_id = ?')
+      .get(req.params.variableId, service.id) as any;
+    if (!existing) throw notFound('Variable not found');
+    db.prepare('DELETE FROM environment_variables WHERE id = ?').run(existing.id);
+    logActivity({
+      workspaceId: service.workspace_id ?? '',
+      projectId: service.project_id,
+      actorId: req.user!.id,
+      actorName: req.user!.name,
+      action: 'variables.deleted',
+      targetType: 'service',
+      targetId: service.id,
+      metadata: { key: existing.key },
+    });
+    res.json({ deleted: true });
+  }),
+);
+
 /* ------------------------- GitHub push webhook ----------------------------- */
 
 export const webhookRouter = Router();
