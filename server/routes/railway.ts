@@ -621,7 +621,7 @@ railwayRouter.get(
         mirrorDeployment({
           projectId: service.project_id,
           serviceId: service.id,
-          environmentId: service.environment_id,
+          environmentId: service.environment_id!,
           providerDeploymentId: dep.id,
           status: dep.rawStatus,
         });
@@ -661,7 +661,7 @@ railwayRouter.post(
       mirrorDeployment({
         projectId: service.project_id,
         serviceId: service.id,
-        environmentId: service.environment_id,
+        environmentId: service.environment_id!,
         providerDeploymentId: result.deploymentId,
         status: 'queued',
         trigger: 'redeploy',
@@ -700,7 +700,7 @@ railwayRouter.post(
       mirrorDeployment({
         projectId: service.project_id,
         serviceId: service.id,
-        environmentId: service.environment_id,
+        environmentId: service.environment_id!,
         providerDeploymentId: result.deploymentId ?? body.deploymentId,
         status: 'queued',
         trigger: 'rollback',
