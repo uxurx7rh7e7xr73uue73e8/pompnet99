@@ -194,6 +194,34 @@ export default function Settings() {
     }
   };
 
+  const connectGithubToken = async () => {
+    if (!workspaceId) return;
+    setBusy(true);
+    try {
+      const res = await post<any>('/providers/github/connect', {
+        workspaceId,
+        token: ghConnect.token.trim(),
+        label: ghConnect.label.trim() || 'GitHub',
+      });
+      toast.success(
+        t('حساب گیت‌هاب متصل شد', 'GitHub account connected'),
+        res?.account?.login
+          ? `${res.account.login}${
+              res.account.accessibleRepos != null ? ` · ${res.account.accessibleRepos} repos` : ''
+            }`
+          : undefined,
+      );
+      setGhConnect({ token: '', label: 'My GitHub account' });
+      const fresh = await get<any>(`/providers?workspaceId=${workspaceId}`);
+      setProviders(fresh);
+      await loadRepos();
+    } catch (err) {
+      toast.error(t('اتصال گیت‌هاب ناموفق بود', 'GitHub connection failed'), errorMessage(err));
+    } finally {
+      setBusy(false);
+    }
+  };
+
   const disconnect = async (provider: string) => {
     try {
       await del(`/providers/${provider}?workspaceId=${workspaceId}`);
