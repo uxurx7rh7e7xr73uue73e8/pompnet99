@@ -37,6 +37,8 @@ export default function Auth({ mode }: { mode: Mode }) {
     github: { configured: boolean };
     google: { configured: boolean };
   } | null>(null);
+  const [ghToken, setGhToken] = useState('');
+  const [tokenOpen, setTokenOpen] = useState(false);
 
   useEffect(() => {
     const token = params.get('token');

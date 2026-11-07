@@ -314,6 +314,82 @@ oauthRouter.delete(
   }),
 );
 
+/**
+ * Real GitHub sign-in that needs no registered OAuth app: the user proves ownership of
+ * their GitHub account with a token, which we verify against the GitHub API. The token is
+ * used only for that verification and is never stored or returned.
+ */
+oauthRouter.post(
+  '/github/token',
+  route(async (req: Request, res: Response) => {
+    rateLimit(`oauth-token:${req.ip}`, 10, 10 * 60_000);
+    const body = parse(z.object({ token: z.string().min(20).max(512) }), req.body);
+    const value = body.token.trim();
+    if (!/^(gh[pousr]_[A-Za-z0-9]{20,}|github_pat_[A-Za-z0-9_]{20,})$/.test(value)) {
+      throw new ApiError(400, 'invalid_token', 'This does not look like a GitHub token.');
+    }
+
+    const headers = {
+      Authorization: `Bearer ${value}`,
+      Accept: 'application/vnd.github+json',
+      'User-Agent': 'pomp-net-cloud',
+      'X-GitHub-Api-Version': '2022-11-28',
+    };
+
+    const identityRes = await fetch('https://api.github.com/user', { headers });
+    if (identityRes.status === 401 || identityRes.status === 403) {
+      throw new ApiError(401, 'invalid_token', 'GitHub rejected this token.');
+    }
+    if (!identityRes.ok) {
+      throw new ApiError(
+        502,
+        'provider_error',
+        `GitHub returned ${identityRes.status} while verifying the token.`,
+      );
+    }
+    const identity: any = await identityRes.json();
+
+    let email = String(identity.email || '').toLowerCase().trim();
+    let emailVerified = Boolean(email);
+    if (!email) {
+      const emailsRes = await fetch('https://api.github.com/user/emails', { headers });
+      if (emailsRes.ok) {
+        const list = (await emailsRes.json()) as Array<{ email: string; primary: boolean; verified: boolean }>;
+        const chosen = list.find((e) => e.primary && e.verified) || list.find((e) => e.verified);
+        if (chosen) {
+          email = chosen.email.toLowerCase();
+          emailVerified = true;
+        }
+      }
+    }
+    if (!email) {
+      throw new ApiError(400, 'email_required', 'This GitHub account has no verified email address.');
+    }
+
+    const user = resolveUser('github', {
+      providerUserId: String(identity.id),
+      email,
+      emailVerified,
+      name: identity.name || identity.login || email.split('@')[0],
+      avatarUrl: identity.avatar_url ?? null,
+    });
+    if (user.suspended_at) {
+      throw new ApiError(403, 'suspended', user.suspended_reason || 'This account is suspended.');
+    }
+
+    createSession(user.id, req, res);
+    audit({
+      actorId: user.id,
+      actorEmail: user.email,
+      action: 'auth.oauth.github.token',
+      targetType: 'user',
+      targetId: user.id,
+      ip: req.ip,
+    });
+    res.json({ ok: true, user: { id: user.id, email: user.email } });
+  }),
+);
+
 oauthRouter.get('/:provider/start', (req: Request, res: Response) => {
   const provider = String(req.params.provider || '');
   if (!isProvider(provider)) {
