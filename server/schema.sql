@@ -121,6 +121,7 @@ CREATE TABLE IF NOT EXISTS services (
   template_slug TEXT,
   provider TEXT NOT NULL DEFAULT 'railway',
   provider_project_id TEXT,
+  provider_environment_id TEXT,
   provider_service_id TEXT,
   status TEXT NOT NULL DEFAULT 'created'
     CHECK (status IN ('created','deploying','running','failed','stopped','unavailable')),
@@ -203,6 +204,8 @@ CREATE TABLE IF NOT EXISTS databases (
   engine TEXT NOT NULL CHECK (engine IN ('postgres','mysql','redis','mongodb')),
   status TEXT NOT NULL CHECK (status IN ('provisioning','ready','failed','deleting')),
   provider TEXT NOT NULL DEFAULT 'railway',
+  provider_project_id TEXT,
+  provider_environment_id TEXT,
   provider_service_id TEXT,
   connection_host TEXT,
   connection_port INTEGER,
