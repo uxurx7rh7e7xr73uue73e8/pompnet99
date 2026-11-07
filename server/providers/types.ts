@@ -15,6 +15,18 @@ export interface ProviderEnvironment {
   name: string;
 }
 
+export interface ProviderServiceSummary {
+  id: string;
+  name: string;
+}
+
+export interface ProviderProjectDetail {
+  id: string;
+  name: string;
+  environments: ProviderEnvironment[];
+  services: ProviderServiceSummary[];
+}
+
 export type ProviderDeploymentStatus =
   | 'queued'
   | 'building'
@@ -28,6 +40,31 @@ export interface DeploymentSnapshot {
   status: ProviderDeploymentStatus;
   rawStatus: string;
   error: string | null;
+}
+
+export interface ProviderDeploymentSummary {
+  id: string;
+  rawStatus: string;
+  status: ProviderDeploymentStatus;
+  createdAt: string | null;
+  staticUrl: string | null;
+}
+
+export interface ProviderDomain {
+  id: string;
+  domain: string;
+  kind: 'service' | 'custom';
+}
+
+export interface ServiceInstanceInfo {
+  id: string | null;
+  source: { image: string | null; repo: string | null; branch: string | null };
+  startCommand: string | null;
+  buildCommand: string | null;
+  rootDirectory: string | null;
+  domains: ProviderDomain[];
+  /** True when the provider returned a reduced payload because optional fields are unsupported. */
+  partial: boolean;
 }
 
 export interface LogLine {
@@ -67,7 +104,24 @@ export interface ProviderAdapter {
   listProjects(token: string): Promise<ProviderProject[]>;
   createProject(token: string, name: string): Promise<ProviderProject>;
   ensureEnvironment(token: string, projectId: string, name: string): Promise<ProviderEnvironment>;
+  getProjectDetails(token: string, projectId: string): Promise<ProviderProjectDetail>;
   createService(token: string, input: CreateServiceInput): Promise<{ id: string }>;
+  getServiceInstance(
+    token: string,
+    input: { serviceId: string; environmentId: string },
+  ): Promise<ServiceInstanceInfo>;
+  updateServiceInstance(
+    token: string,
+    input: {
+      serviceId: string;
+      environmentId: string;
+      buildCommand?: string | null;
+      startCommand?: string | null;
+      rootDirectory?: string | null;
+      image?: string | null;
+    },
+  ): Promise<void>;
+  deleteService(token: string, serviceId: string): Promise<void>;
   upsertVariables(
     token: string,
     input: {
@@ -81,6 +135,10 @@ export interface ProviderAdapter {
     token: string,
     input: { serviceId: string; environmentId: string },
   ): Promise<{ deploymentId: string }>;
+  listDeployments(
+    token: string,
+    input: { projectId: string; environmentId: string; serviceId?: string | null; limit?: number },
+  ): Promise<ProviderDeploymentSummary[]>;
   getDeployment(token: string, deploymentId: string): Promise<DeploymentSnapshot>;
   fetchDeploymentLogs(token: string, deploymentId: string): Promise<LogLine[]>;
   createServiceDomain(
