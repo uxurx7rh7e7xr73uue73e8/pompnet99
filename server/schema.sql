@@ -118,6 +118,7 @@ CREATE TABLE IF NOT EXISTS services (
   start_command TEXT,
   healthcheck_path TEXT,
   auto_deploy INTEGER NOT NULL DEFAULT 0,
+  webhook_secret TEXT,
   template_slug TEXT,
   provider TEXT NOT NULL DEFAULT 'railway',
   provider_project_id TEXT,
@@ -284,7 +285,7 @@ CREATE TABLE IF NOT EXISTS usage_records (
   workspace_id TEXT NOT NULL REFERENCES workspaces(id) ON DELETE CASCADE,
   project_id TEXT,
   service_id TEXT,
-  metric TEXT NOT NULL CHECK (metric IN ('cpu_seconds','memory_gb_seconds','network_gb','disk_gb','deployments')),
+  metric TEXT NOT NULL CHECK (metric IN ('cpu_seconds','memory_gb_seconds','network_gb','disk_gb','deployments','database_provisioned')),
   value REAL NOT NULL,
   unit TEXT NOT NULL,
   source TEXT NOT NULL,
@@ -297,3 +298,14 @@ CREATE TABLE IF NOT EXISTS platform_settings (
   value TEXT NOT NULL,
   updated_at TEXT NOT NULL
 );
+
+CREATE TABLE IF NOT EXISTS error_reports (
+  id TEXT PRIMARY KEY,
+  workspace_id TEXT,
+  user_id TEXT,
+  path TEXT,
+  message TEXT NOT NULL,
+  stack TEXT,
+  created_at TEXT NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_errors_created ON error_reports(created_at DESC);

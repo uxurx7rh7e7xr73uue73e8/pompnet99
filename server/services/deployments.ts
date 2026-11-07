@@ -54,7 +54,7 @@ export function recordUsage(input: {
   workspaceId: string;
   projectId?: string | null;
   serviceId?: string | null;
-  metric: 'deployments';
+  metric: 'deployments' | 'database_provisioned';
   value: number;
   unit: string;
   source: string;
