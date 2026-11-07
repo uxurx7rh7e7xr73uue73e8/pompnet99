@@ -639,7 +639,8 @@ webhookRouter.post(
     const service = db.prepare('SELECT * FROM services WHERE id = ?').get(req.params.serviceId) as any;
     if (!service || !service.webhook_secret) throw notFound('Unknown webhook endpoint');
     const signature = String(req.header('x-hub-signature-256') || '');
-    const raw = JSON.stringify(req.body ?? {});
+    const rawBody = (req as any).rawBody as Buffer | undefined;
+    const raw = rawBody ? rawBody.toString('utf8') : JSON.stringify(req.body ?? {});
     const expected = `sha256=${createHmac('sha256', service.webhook_secret).update(raw).digest('hex')}`;
     const a = Buffer.from(signature);
     const b = Buffer.from(expected);
