@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { useAuth } from '../lib/auth';
 import { useLang } from '../lib/i18n';
-import { del, errorMessage, formatDate, get, patch, post } from '../lib/api';
+import { del, errorMessage, formatDate, get, patch, post, put } from '../lib/api';
 import {
   Alert,
   Badge,
@@ -31,6 +31,11 @@ export default function Settings() {
   const [busy, setBusy] = useState(false);
   const [githubNote, setGithubNote] = useState('');
   const [repos, setRepos] = useState<any[] | null>(null);
+  const [oauthCfg, setOauthCfg] = useState<any>(null);
+  const [oauthForm, setOauthForm] = useState({
+    github: { clientId: '', clientSecret: '' },
+    google: { clientId: '', clientSecret: '' },
+  });
 
   const loadProviders = useCallback(async () => {
     if (!workspaceId) return;
@@ -55,6 +60,80 @@ export default function Settings() {
     void loadProviders();
     void loadSessions();
   }, [loadProviders, loadSessions]);
+
+  const loadOauth = useCallback(async () => {
+    try {
+      const res = await get<any>('/auth/oauth/settings');
+      setOauthCfg(res);
+      setOauthForm({
+        github: { clientId: res?.github?.clientId ?? '', clientSecret: '' },
+        google: { clientId: res?.google?.clientId ?? '', clientSecret: '' },
+      });
+    } catch {
+      setOauthCfg(null);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (user?.isPlatformOwner) void loadOauth();
+  }, [user?.isPlatformOwner, loadOauth]);
+
+  const updateOauthForm = (
+    provider: 'github' | 'google',
+    patch: Partial<{ clientId: string; clientSecret: string }>,
+  ) => {
+    setOauthForm((f) =>
+      provider === 'github'
+        ? { ...f, github: { ...f.github, ...patch } }
+        : { ...f, google: { ...f.google, ...patch } },
+    );
+  };
+
+  const saveOauth = async (provider: 'github' | 'google') => {
+    setBusy(true);
+    try {
+      const form = oauthForm[provider];
+      const res = await put<any>('/auth/oauth/settings', {
+        provider,
+        clientId: form.clientId.trim(),
+        clientSecret: form.clientSecret.trim() || undefined,
+      });
+      setOauthCfg(res);
+      setOauthForm((f) =>
+        provider === 'github'
+          ? { ...f, github: { clientId: res?.github?.clientId ?? '', clientSecret: '' } }
+          : { ...f, google: { clientId: res?.google?.clientId ?? '', clientSecret: '' } },
+      );
+      toast.success(
+        t('تنظیمات ورود ذخیره شد', 'Sign-in settings saved'),
+        res?.[provider]?.configured
+          ? t('دکمهٔ ورود اکنون فعال است.', 'The sign-in button is now active.')
+          : t('Client Secret را هم وارد کن.', 'Also provide the client secret.'),
+      );
+    } catch (err) {
+      toast.error(t('ذخیره ناموفق بود', 'Save failed'), errorMessage(err));
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const clearOauth = async (provider: 'github' | 'google') => {
+    setBusy(true);
+    try {
+      const res = await del<any>(`/auth/oauth/settings/${provider}`);
+      setOauthCfg(res);
+      setOauthForm((f) =>
+        provider === 'github'
+          ? { ...f, github: { clientId: res?.github?.clientId ?? '', clientSecret: '' } }
+          : { ...f, google: { clientId: res?.google?.clientId ?? '', clientSecret: '' } },
+      );
+      toast.success(t('تنظیمات حذف شد', 'Settings cleared'));
+    } catch (err) {
+      toast.error(t('حذف ناموفق بود', 'Clear failed'), errorMessage(err));
+    } finally {
+      setBusy(false);
+    }
+  };
 
   const saveProfile = async () => {
     setBusy(true);
@@ -166,6 +245,7 @@ export default function Settings() {
           { id: 'profile', label: t('پروفایل', 'Profile') },
           { id: 'security', label: t('امنیت', 'Security') },
           { id: 'providers', label: t('ارائه‌دهنده‌ها', 'Providers') },
+          ...(user?.isPlatformOwner ? [{ id: 'login', label: t('ورودها', 'Sign-in') }] : []),
           { id: 'workspace', label: t('ورک‌اسپیس', 'Workspace') },
         ]}
       />
