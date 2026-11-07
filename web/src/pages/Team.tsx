@@ -183,7 +183,7 @@ export default function Team() {
       </Card>
 
       <Card>
-        <SectionTitle title={t('دعوت‌های در انتظار', 'Pending invitations')} subtitle={t('پذیرش دعوت از طریق لینک')} />
+        <SectionTitle title={t('دعوت‌های در انتظار', 'Pending invitations')} subtitle={t('پذیرش دعوت از طریق لینک', 'Invitations are accepted through a link')} />
         {data?.invitations?.length ? (
           <div className="space-y-2">
             {data.invitations.map((inv: any) => (
