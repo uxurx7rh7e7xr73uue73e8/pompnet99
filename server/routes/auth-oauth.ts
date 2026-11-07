@@ -1,10 +1,11 @@
 import { Router } from 'express';
 import type { Request, Response } from 'express';
 import { db, getSetting, setSetting } from '../db.js';
-import { createSession } from '../lib/auth.js';
+import { z } from 'zod';
+import { createSession, requireAuth, requirePlatformOwner } from '../lib/auth.js';
 import { audit } from '../lib/audit.js';
-import { nowIso } from '../lib/http.js';
-import { randomToken } from '../lib/crypto.js';
+import { ApiError, nowIso, parse, route } from '../lib/http.js';
+import { decryptSecret, encryptSecret, randomToken } from '../lib/crypto.js';
 import { rateLimit } from '../lib/rateLimit.js';
 
 export const oauthRouter = Router();
@@ -28,10 +29,32 @@ interface OAuthProfile {
   avatarUrl: string | null;
 }
 
+function envValue(provider: Provider, kind: 'id' | 'secret'): string {
+  const name =
+    kind === 'id'
+      ? provider === 'github'
+        ? 'GITHUB_CLIENT_ID'
+        : 'GOOGLE_CLIENT_ID'
+      : provider === 'github'
+        ? 'GITHUB_CLIENT_SECRET'
+        : 'GOOGLE_CLIENT_SECRET';
+  return (process.env[name] || '').trim();
+}
+
+function storedSecret(provider: Provider): string {
+  const encrypted = getSetting(`oauth:${provider}:client_secret`, '');
+  if (!encrypted) return '';
+  try {
+    return decryptSecret(encrypted);
+  } catch {
+    return '';
+  }
+}
+
+/** Credentials saved by the platform owner win over environment variables. */
 function config(provider: Provider): ProviderConfig {
-  const clientId = (provider === 'github' ? process.env.GITHUB_CLIENT_ID : process.env.GOOGLE_CLIENT_ID) || '';
-  const clientSecret =
-    (provider === 'github' ? process.env.GITHUB_CLIENT_SECRET : process.env.GOOGLE_CLIENT_SECRET) || '';
+  const clientId = getSetting(`oauth:${provider}:client_id`, '').trim() || envValue(provider, 'id');
+  const clientSecret = storedSecret(provider) || envValue(provider, 'secret');
   return { clientId, clientSecret, configured: Boolean(clientId && clientSecret) };
 }
 
